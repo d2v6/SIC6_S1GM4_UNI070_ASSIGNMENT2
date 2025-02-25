@@ -3,144 +3,171 @@
 ## Overview
 This project integrates an ESP32 microcontroller with a Python Flask backend to collect temperature and humidity data using a **DHT11 sensor**. The data is then **published via MQTT**, stored in a **MongoDB database**, and sent to **Ubidots** for cloud monitoring.
 
-## Features
-- ESP32 reads **temperature & humidity** using DHT11 sensor
-- Sends data to **Flask server** via **MQTT**
-- Stores data in a **MongoDB local database**
-- Sends data to **Ubidots cloud platform**
-- Flask **API endpoint** to retrieve latest data
+## System Architecture
+- **ESP32** with DHT11 sensor for data collection
+- **MQTT** for data transmission
+- **MongoDB** for local data storage
+- **Flask** backend server
+- **Ubidots** for cloud visualization
 
----
+## Prerequisites
+- Python 3.8+
+- ESP32 board
+- DHT11 sensor
+- USB cable
+- MongoDB installed locally
+- Ubidots account
 
-## Hardware Requirements
-- **ESP32 Board**
-- **DHT11 Temperature & Humidity Sensor**
-- **Jumper Wires**
-- **WiFi Connection**
+## Installation Steps
 
-## Software Requirements
-- **Python 3.8+**
-- **Flask** (Backend Server)
-- **paho-mqtt** (MQTT client for Python)
-- **MongoDB** (Local database)
-- **Ubidots API Key** (For cloud storage)
-- **MicroPython** installed on ESP32
-- **MQTT Broker** (EMQX or a self-hosted broker)
+### 1. Install Required Python Packages
+```bash
+pip install esptool
+pip install adafruit-ampy
+pip install pyserial
+pip install flask
+pip install paho-mqtt
+pip install pymongo
+pip install requests
+```
 
----
-
-## Project Setup
-
-### 1️⃣ Flash MicroPython on ESP32
-Ensure **MicroPython** is installed on your ESP32 board.
-
-1. Install **esptool**:
-   ```sh
-   pip install esptool
-   ```
-2. Erase ESP32 flash:
-   ```sh
-   esptool.py --chip esp32 erase_flash
-   ```
+### 2. Flash ESP32 with MicroPython
+1. Download MicroPython firmware for ESP32 from [official website](https://micropython.org/download/esp32/)
+2. Erase ESP32 flash memory:
+```bash
+python -m esptool --port COM3 erase_flash
+```
 3. Flash MicroPython firmware:
-   ```sh
-   esptool.py --chip esp32 --port COMx write_flash -z 0x1000 firmware.bin
-   ```
-   _(Replace `COMx` with your port and `firmware.bin` with the actual MicroPython firmware file)_
-
-### 2️⃣ Upload `main.py` to ESP32
-Use **Thonny** or **ampy** to upload `main.py` to ESP32.
-
-```sh
-ampy --port COMx put main.py
+```bash
+python -m esptool --port COM3 --baud 460800 write_flash --flash_size=detect 0x1000 firmware.bin
 ```
 
-### 3️⃣ Run Flask Backend (`app.py`)
-Make sure **MongoDB is running** and Flask dependencies are installed.
-
-#### Install Dependencies
-```sh
-pip install flask paho-mqtt pymongo requests
+### 3. Upload Required Files to ESP32
+1. Upload MQTT helper library:
+```bash
+ampy --port COM3 put simple.py
+```
+2. Upload main program:
+```bash
+ampy --port COM3 put main.py
 ```
 
-#### Start MongoDB (if not running)
-```sh
+### 4. Configure the Project
+
+#### ESP32 Configuration (main.py)
+1. Update WiFi credentials:
+```python
+SSID = "your_wifi_ssid"
+PASSWORD = "your_wifi_password"
+```
+
+#### Flask Server Configuration (app.py)
+1. Update MongoDB settings if needed:
+```python
+MONGO_URI = "mongodb://localhost:27017/"
+DB_NAME = "S1GM4"
+COLLECTION_NAME = "sensor_data"
+```
+
+2. Update Ubidots configuration:
+```python
+UBIDOTS_TOKEN = "YOUR-UBIDOTS-TOKEN"
+UBIDOTS_DEVICE_LABEL = "esp32"
+```
+
+### 5. Start the System
+
+1. Start MongoDB service (if not running):
+```bash
 mongod --dbpath <your-db-path>
 ```
 
-#### Run Flask Server
-```sh
+2. Monitor ESP32 output (in terminal 1):
+```bash
+python -m serial.tools.miniterm COM3 115200
+```
+
+3. Start Flask server (in terminal 2):
+```bash
 python app.py
 ```
-Flask server will start at `http://0.0.0.0:5000`
 
-### 4️⃣ Setup MQTT Broker
-- The ESP32 **publishes** data to MQTT broker (`broker.emqx.io`)
-- Flask **subscribes** to MQTT topics: `esp32/temperature` & `esp32/humidity`
+### 6. Verify Operation
 
-### 5️⃣ Ubidots Configuration
-- Replace `UBIDOTS_TOKEN` in `app.py` with your Ubidots **API Key**
-- Data is sent to Ubidots automatically when received from ESP32
+1. **Check ESP32 Connection**
+   - ESP32 should connect to WiFi
+   - You should see MQTT messages being published
 
----
+2. **Verify MongoDB Storage**
+   - Use MongoDB Compass to check if data is being stored
+   - Database: S1GM4
+   - Collection: sensor_data
 
-## Usage Guide
+3. **Check Ubidots Dashboard**
+   - Log into Ubidots
+   - Go to Devices > esp32
+   - Verify data is being received
 
-### **1️⃣ Run ESP32 Code**
-ESP32 will:
-- Connect to **WiFi**
-- Read **DHT11** sensor data
-- Send data via **MQTT**
-
-### **2️⃣ Check Flask Server Logs**
-Flask will:
-- Subscribe to **MQTT topics**
-- Save received data to **MongoDB**
-- Send data to **Ubidots**
-
-### **3️⃣ Access Data via API**
-To get the latest stored data:
-```sh
+4. **Test Flask API**
+```bash
 curl http://localhost:5000/data
 ```
-Example Response:
-```json
-{
-  "temperature": 25.4,
-  "humidity": 60.3
-}
+
+### Troubleshooting
+
+1. **ESP32 Connection Issues**
+   - Verify correct COM port
+   - Check USB cable
+   - Try pressing ESP32 reset button
+
+2. **MQTT Problems**
+   - Verify WiFi connection
+   - Check MQTT broker status
+   - Verify topic names
+
+3. **MongoDB Issues**
+   - Ensure MongoDB service is running
+   - Check connection string
+   - Verify database permissions
+
+4. **Ubidots Connection**
+   - Verify token is correct
+   - Check internet connection
+   - Verify device label matches
+
+## Project Structure
+```
+project/
+├── src/
+│   ├── main.py      # ESP32 code
+│   ├── simple.py    # MQTT helper
+│   └── app.py       # Flask server
+└── README.md
 ```
 
-### **4️⃣ Monitor Data in Ubidots**
-Log into **Ubidots** and check the **ESP32 device dashboard** for real-time sensor data.
+## Common Commands
 
----
+### ESP32 Management
+```bash
+# List COM ports
+python -m serial.tools.list_ports
 
-## Troubleshooting
-### ❌ ESP32 Not Connecting to WiFi
-- Double-check **SSID & Password** in `main.py`
-- Restart ESP32 and try again
+# Monitor ESP32
+python -m serial.tools.miniterm COM3 115200
 
-### ❌ MQTT Not Connecting
-- Ensure MQTT broker (`broker.emqx.io`) is online
-- Check if Flask can connect to the broker
+# Reset ESP32
+ampy --port COM3 reset
+```
 
-### ❌ Data Not Appearing in MongoDB
-- Ensure MongoDB service is **running**
-- Check Flask logs for errors
+### Data Verification
+```bash
+# Get latest readings
+curl http://localhost:5000/data
 
-### ❌ Data Not Showing in Ubidots
-- Verify **API Key** in `app.py`
-- Check **Ubidots Device Label**
-
----
-
-## Future Improvements
-✅ Implement **JWT Authentication** for Flask API
-✅ Use **WebSocket Dashboard** for real-time visualization
-✅ Deploy **Flask App on DigitalOcean** for remote access
-
----
+# MongoDB query (in MongoDB shell)
+use S1GM4
+db.sensor_data.find().sort({timestamp:-1}).limit(1)
+```
 
 ## Contributors
 - **Dave Daniell Yanni**
@@ -149,7 +176,3 @@ Log into **Ubidots** and check the **ESP32 device dashboard** for real-time sens
 - **Kenneth Poenadi**
 
 ---
-
-## License
-This project is open-source under the MIT License. Feel free to modify and improve!
-
