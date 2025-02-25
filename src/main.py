@@ -6,8 +6,8 @@ import machine
 from umqtt.simple import MQTTClient
 
 # WiFi Credentials
-SSID = "nicequota"
-PASSWORD = "mywifi123"
+SSID = "nicequota" #change accordingly
+PASSWORD = "mywifi123" #change accordingly
 
 # MQTT Broker (Flask server IP or cloud broker)
 BROKER = "broker.emqx.io"  # Public MQTT broker
